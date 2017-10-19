@@ -81,4 +81,4 @@ if __name__ == '__main__':
     tags = sys.argv[3:]
 
     for tag in tags:
-        InstaFuck('LOGIN', 'PASS', tag)
+        InstaFuck(login, password, tag)
