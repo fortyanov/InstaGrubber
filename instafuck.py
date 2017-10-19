@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 from functools import wraps
 
@@ -5,9 +6,6 @@ from functools import wraps
 # imageio.plugins.ffmpeg.download()
 
 from InstagramAPI import InstagramAPI
-
-TAGS = ['m_mystery', 'заводлюдвигнобель']
-# TAGS = ['belogorka']
 
 
 def retry(ExceptionToCheck, tries=4, delay=300, backoff=2, logger=None):
@@ -71,12 +69,16 @@ class InstaFuck(InstagramAPI):
         result = ''
         for user in self.users:
             result += '<a target=_blank href=https://www.instagram.com/%s>%s</a>&#9;%s&#9;<br>\n' % (
-                user['pk'], user['username'], user['followers_count'])
+                user['username'], user['username'], user['followers_count'])
 
         with open('%s.html' % self.tag, 'w+') as f:
             f.write(result)
 
 
 if __name__ == '__main__':
-    for tag in TAGS:
-        InstaFuck('mrslapper0_0', 'vtyn1gfyr', tag)
+    login = sys.argv[1]
+    password = sys.argv[2]
+    tags = sys.argv[3:]
+
+    for tag in tags:
+        InstaFuck('LOGIN', 'PASS', tag)
