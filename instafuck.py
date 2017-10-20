@@ -1,4 +1,5 @@
 import sys
+import hashlib
 from time import sleep
 from functools import wraps
 import random
@@ -46,15 +47,26 @@ def renew_connection():
 
 def change_ip(f):
     def f_change_ip(self, *args, **kwargs):
-        try:
-            return f(self, *args, **kwargs)
-        except Exception as e:
-            renew_connection()
-            other_accounts = [acc for acc in INSTAGRAM_ACCOUNTS if acc != (self.username, self.password)]
-            random_account = random.choice(other_accounts)
-            self.setUser(self, random_account[0], random_account[1])
-            self.login()
-            print('Смена позльзователя\nlogin: %s\nip: %s' % (random_account[0], self.s.get('http://ifconfig.me/ip').text))
+        if self.tor:
+            try:
+                return f(self, *args, **kwargs)
+            except Exception as e:
+                renew_connection()
+                other_accounts = [acc for acc in INSTAGRAM_ACCOUNTS if acc != (self.username, self.password)]
+                random_account = random.choice(other_accounts)
+                username = random_account[0]
+                password = random_account[1]
+
+                m = hashlib.md5()
+                m.update(username.encode('utf-8') + password.encode('utf-8'))
+                self.device_id = self.generateDeviceId(m.hexdigest())
+                self.setUser(username, password)
+                self.isLoggedIn = False
+                self.LastResponse = None
+
+                self.setUser(username, password)
+                self.login(tor=True)
+                print('Смена позльзователя\nlogin: %s\nip: %s' % (username, self.s.get('http://ifconfig.me/ip').text))
         return f(self, *args, **kwargs)
     return f_change_ip
 
@@ -65,6 +77,7 @@ class InstaFuck(InstagramAPI):
         self.location_filter = location_filter
         self.tag = tag
         self.users = []
+        self.tor = tor
         self.login()
 
         publications = self.get_publications()
@@ -79,19 +92,15 @@ class InstaFuck(InstagramAPI):
 
         self.write_result_html()
 
-    def login(self, force=False, tor=False):
+    def login(self, force=False):
         if (not self.isLoggedIn or force):
             self.s = requests.Session()
-            if tor:
+            if self.tor:
                 self.s.proxies = {
                     'http': 'socks5://127.0.0.1:9050',
                     'https': 'socks5://127.0.0.1:9050'
                 }
-
-            # if you need proxy make something like this:
-            # self.s.proxies = {"https" : "http://proxyip:proxyport"}
             if (self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True)):
-
                 data = {'phone_id'   : self.generateUUID(True),
                         '_csrftoken' : self.LastResponse.cookies['csrftoken'],
                         'username'   : self.username,
