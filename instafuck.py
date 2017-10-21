@@ -1,83 +1,21 @@
 import sys
-import hashlib
-from time import sleep
-from functools import wraps
 import random
-
 import requests
 import json
-from stem import Signal
-from stem.control import Controller
 
 # import imageio
 # imageio.plugins.ffmpeg.download()
 
 from InstagramAPI import InstagramAPI
-
-INSTAGRAM_ACCOUNTS = (('mrslapper0_0', 'vtyn1gfyr'), ('vsegdazhivoi@protonmail.com', 'SaprunZhopa12253'), ('mutniyjoe@gmail.com', 'mutniyjoe1!'))
-
-
-def retry(ExceptionToCheck, tries=4, delay=300, backoff=2, logger=None):
-    def deco_retry(f):
-        @wraps(f)
-        def f_retry(*args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 1:
-                try:
-                    return f(*args, **kwargs)
-                except ExceptionToCheck as e:
-                    msg = "Таймаут, ждем %s секунд...\n" % mdelay
-                    if logger:
-                        logger.warning(msg)
-                    else:
-                        print(msg)
-                    sleep(mdelay)
-                    mtries -= 1
-                    mdelay *= backoff
-            return f(*args, **kwargs)
-        return f_retry
-    return deco_retry
-
-
-def renew_connection():
-    with Controller.from_port(port=9051) as controller:
-        controller.authenticate(password='my_password')
-        controller.signal(Signal.NEWNYM)
-
-
-def change_ip(f):
-    def f_change_ip(self, *args, **kwargs):
-        if self.tor:
-            try:
-                return f(self, *args, **kwargs)
-            except Exception as e:
-                renew_connection()
-                other_accounts = [acc for acc in INSTAGRAM_ACCOUNTS if acc != (self.username, self.password)]
-                random_account = random.choice(other_accounts)
-                username = random_account[0]
-                password = random_account[1]
-
-                m = hashlib.md5()
-                m.update(username.encode('utf-8') + password.encode('utf-8'))
-                self.device_id = self.generateDeviceId(m.hexdigest())
-                self.setUser(username, password)
-                self.isLoggedIn = False
-                self.LastResponse = None
-
-                self.setUser(username, password)
-                self.login(tor=True)
-                print('Смена позльзователя\nlogin: %s\nip: %s' % (username, self.s.get('http://ifconfig.me/ip').text))
-        return f(self, *args, **kwargs)
-    return f_change_ip
+from consts import INSTAGRAM_ACCOUNTS
 
 
 class InstaFuck(InstagramAPI):
-    def __init__(self, username, password, tag, location_filter=None, tor=False):
+    def __init__(self, username, password, tag, location_filter=None):
         super().__init__(username, password)
         self.location_filter = location_filter
         self.tag = tag
         self.users = []
-        self.tor = tor
         self.login()
 
         publications = self.get_publications()
@@ -92,14 +30,12 @@ class InstaFuck(InstagramAPI):
 
         self.write_result_html()
 
-    def login(self, force=False):
+    def login(self, force=False, proxies=None):
         if (not self.isLoggedIn or force):
             self.s = requests.Session()
-            if self.tor:
-                self.s.proxies = {
-                    'http': 'socks5://127.0.0.1:9050',
-                    'https': 'socks5://127.0.0.1:9050'
-                }
+            if proxies:
+                self.s.proxies = proxies
+
             if (self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True)):
                 data = {'phone_id'   : self.generateUUID(True),
                         '_csrftoken' : self.LastResponse.cookies['csrftoken'],
@@ -123,8 +59,6 @@ class InstaFuck(InstagramAPI):
                     print ("Login success!\n")
                     return True
 
-    @retry(Exception, tries=999999999, delay=30)
-    @change_ip
     def get_publications(self):
         publications = []
         next_max_id = True
@@ -141,8 +75,6 @@ class InstaFuck(InstagramAPI):
                             self.location_filter.items() in pub.get('location', {})]
         return publications
 
-    @retry(Exception, tries=999999999, delay=30)
-    @change_ip
     def get_followers(self, user_pk):
         followers_count = len(self.getTotalFollowers(user_pk))
         return followers_count
@@ -163,7 +95,9 @@ if __name__ == '__main__':
     # password = sys.argv[2]
     # tags = sys.argv[3:]
 
-    for tag in ['zingerclub', 'zinger']:
+    for tag in ['zingerclub']:
         print('tag: %s' % tag)
-        # InstaFuck('mrslapper0_0', 'vtyn1gfyr', tag, location_filter={'city': 'Saint Petersburg, Russia'})
-        InstaFuck('mrslapper0_0', 'vtyn1gfyr', tag, tor=True)
+
+        account = random.choice(INSTAGRAM_ACCOUNTS)
+        print('account: %s %s' % account)
+        InstaFuck(account[0], account[1], tag)

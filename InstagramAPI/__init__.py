@@ -16,6 +16,9 @@ from datetime import datetime
 import calendar
 import os
 
+from exceptions import DropConnectionExc
+from utils import retry, change_ip
+
 #The urllib library was split into other modules from Python 2 to Python 3
 if sys.version_info.major == 3:
     import urllib.parse
@@ -758,11 +761,18 @@ class InstagramAPI:
     def getSelfUsersFollowing(self):
         return self.getUserFollowings(self.username_id)
 
+    @retry(DropConnectionExc, tries=999999999, delay=300)
+    # @change_ip
     def getUserFollowers(self, usernameId, maxid = ''):
         if maxid == '':
-            return self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token)
+            response = self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token)
         else:
-            return self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token + '&max_id='+ str(maxid))
+            response = self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token + '&max_id='+ str(maxid))
+
+        if self.LastJson.get('message') == 'Please wait a few minutes before you try again.':
+            raise DropConnectionExc
+
+        return response
 
     def getSelfUserFollowers(self):
         return self.getUserFollowers(self.username_id)
@@ -902,7 +912,9 @@ class InstagramAPI:
             body += u'\r\n\r\n{data}\r\n'.format(data = b['data'])
         body += u'--{boundary}--'.format(boundary = boundary)
         return body;
-    
+
+    # @retry(Exception, tries=999999999, delay=300)
+    # @change_ip
     def SendRequest(self, endpoint, post = None, login = False):
         if (not self.isLoggedIn and not login):
             raise Exception("Not logged in!\n")
