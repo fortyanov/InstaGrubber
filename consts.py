@@ -1,8 +1,8 @@
 INSTAGRAM_ACCOUNTS = (
     # ('mrslapper0_0', 'vtyn1gfyr'),
     # ('vsegdazhivoi@protonmail.com', 'SaprunZhopa12253'),
-    # ('mutniyjoe@gmail.com', 'mutniyjoe1!'),
-    ('fedorortyanov@gmail.com', 'fedorortyanov1!'),
+    ('mutniyjoe@gmail.com', 'mutniyjoe1!'),
+    # ('fedorortyanov@gmail.com', 'fedorortyanov1!'),
     # ('3ejuhlj', 'Is8Dx7e5PZ'),
 )
 

@@ -729,6 +729,7 @@ class InstagramAPI:
     def getSelfUserFeed(self, maxid = '', minTimestamp = None):
         return self.getUserFeed(self.username_id, maxid, minTimestamp)
 
+    @retry(DropConnectionExc, tries=999999999, delay=300)
     def getHashtagFeed(self, hashtagString, maxid = ''):
         return self.SendRequest('feed/tag/'+hashtagString+'/?max_id='+str(maxid)+'&rank_token='+self.rank_token+'&ranked_content=true&')
 

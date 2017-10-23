@@ -1,9 +1,12 @@
+import re
+import sys
 import hashlib
 from time import sleep
 import random
 from functools import wraps
 
-import sys
+import requests
+import browser_cookie3
 from stem import Signal
 from stem.control import Controller
 from consts import INSTAGRAM_ACCOUNTS, PROXIES
@@ -71,3 +74,25 @@ def change_ip(f):
 
         return f(self, *args, **kwargs)
     return f_change_ip
+
+
+@retry(Exception, tries=999999999, delay=300)
+def get_browser_followers(username):
+    # cookies = browser_cookie3.chrome(cookie_file='~/.config/chromium/Default/Cookies')
+    cookies = browser_cookie3.firefox()
+    response = requests.get('https://www.instagram.com/%s/' % username, cookies=cookies)
+    response_text = response.text
+    reg_expr = r'"(\d+(?:[.,]\d*[k]*)?) Followers'
+
+    if '<h2>Sorry, this page isn&#39;t available.</h2>' in response_text:
+        followers_count = -1
+    else:
+        followers_count = re.findall(reg_expr, response_text)[0].replace(',', '.')
+
+        if '.' in followers_count:
+            if followers_count[-1] == 'k':
+                followers_count = followers_count[:-1]
+            followers_count = float(followers_count) * 1000
+
+    print('User: %s  Followers: %s' % (username, followers_count))
+    return int(followers_count)

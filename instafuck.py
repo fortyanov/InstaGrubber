@@ -8,6 +8,7 @@ import json
 
 from InstagramAPI import InstagramAPI
 from consts import INSTAGRAM_ACCOUNTS
+from utils import get_browser_followers
 
 
 class InstaFuck(InstagramAPI):
@@ -24,7 +25,8 @@ class InstaFuck(InstagramAPI):
             print('publication: %s\n' % pub)
             user = pub['user']
             if user['pk'] not in [u['pk'] for u in self.users]:
-                user['followers_count'] = self.get_followers(user['pk'])
+                # user['followers_count'] = self.get_followers(user['pk'])
+                user['followers_count'] = get_browser_followers(user['username'])
                 print('user: %s    followers_count: %s\n' % (user['username'], user['followers_count']))
                 self.users.append(user)
 
