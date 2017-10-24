@@ -5,6 +5,7 @@ from time import sleep
 import random
 from functools import wraps
 
+import datetime
 import requests
 import browser_cookie3
 from stem import Signal
@@ -96,3 +97,19 @@ def get_browser_followers(username):
 
     print('User: %s  Followers: %s' % (username, followers_count))
     return int(followers_count)
+
+
+def get_or_create(session, model, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+    if instance:
+        return instance, False
+    else:
+        instance = model(**kwargs)
+        session.add(instance)
+        session.commit()
+
+        return instance, True
+
+
+def utc_now():
+    return datetime.datetime.now(tz=datetime.timezone.utc)

@@ -1,2 +1,4 @@
 -e git+https://github.com/LevPasha/Instagram-API-python.git#egg=InstagramAPI
 browser-cookie3==0.6.2
+SQLAlchemy
+sqlalchemy-migrate

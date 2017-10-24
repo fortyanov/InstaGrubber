@@ -1,5 +1,7 @@
 import sys
 import random
+from datetime import timedelta
+
 import requests
 import json
 
@@ -7,8 +9,9 @@ import json
 # imageio.plugins.ffmpeg.download()
 
 from InstagramAPI import InstagramAPI
-from consts import INSTAGRAM_ACCOUNTS
-from utils import get_browser_followers
+from utils import get_browser_followers, get_or_create
+from consts import INSTAGRAM_ACCOUNTS, TAGS
+from models import Session, User, Tag, Publication
 
 
 class InstaFuck(InstagramAPI):
@@ -18,19 +21,22 @@ class InstaFuck(InstagramAPI):
         self.tag = tag
         self.users = []
         self.login()
+        self.db_session = Session()
 
         publications = self.get_publications()
 
-        for pub in publications:
-            print('publication: %s\n' % pub)
-            user = pub['user']
+        for publication in publications:
+            print('publication: %s\n' % publication)
+            user = publication['user']
             if user['pk'] not in [u['pk'] for u in self.users]:
                 # user['followers_count'] = self.get_followers(user['pk'])
                 user['followers_count'] = get_browser_followers(user['username'])
                 print('user: %s    followers_count: %s\n' % (user['username'], user['followers_count']))
                 self.users.append(user)
 
-        self.write_result_html()
+                self.write_to_db(user=user, tag=self.tag, publication=publication)
+
+        # self.write_result_html()
 
     def login(self, force=False, proxies=None):
         if (not self.isLoggedIn or force):
@@ -91,15 +97,41 @@ class InstaFuck(InstagramAPI):
         with open('%s.html' % self.tag, 'w+') as f:
             f.write(result)
 
+    def write_to_db(self, user, rewritable_timedelta=timedelta(days=100), *args, **kwargs):
+        pass
+
+    def write_to_db(self, user, tag, publication, rewritable_timedelta=timedelta(days=100)):
+        pass
+
+    def write_to_db(self, user, tag, publication, rewritable_timedelta=timedelta(days=100)):
+        pass
+
+            user, user_created = get_or_create(self.db_session, User, instagram_pk=user['pk'])
+            if not user_created or rewritable_timedelta:
+                user.update({
+                    'username': user['username'],
+                    'full_name': user['full_name'],
+                    'followers': user['followers'],
+                })
+
+            tag, _ = get_or_create(self.db_session, Tag, name=tag)
+
+            publication, publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
+            if not created:
+
+
+        self.db_session.commit()
+
+
+    def __exit__(self):
+        self.db_session.close()
+
 
 if __name__ == '__main__':
-    # login = sys.argv[1]
-    # password = sys.argv[2]
-    # tags = sys.argv[3:]
-
-    for tag in ['zingerclub']:
+    for tag in TAGS:
         print('tag: %s' % tag)
 
         account = random.choice(INSTAGRAM_ACCOUNTS)
         print('account: %s %s' % account)
+
         InstaFuck(account[0], account[1], tag)
