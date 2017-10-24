@@ -82,7 +82,7 @@ def get_browser_followers(username):
     cookies = browser_cookie3.firefox()
     response = requests.get('https://www.instagram.com/%s/' % username, cookies=cookies)
     response_text = response.text
-    reg_expr = r'"(\d+(?:[.,]\d*[k]*)?) Followers'
+    reg_expr = r'(\d+(?:[.,]\d*)?)[k]* Followers'
 
     if '<h2>Sorry, this page isn&#39;t available.</h2>' in response_text:
         followers_count = -1
