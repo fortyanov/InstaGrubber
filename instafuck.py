@@ -1,6 +1,6 @@
 import sys
 import random
-from datetime import timedelta
+import datetime
 
 import requests
 import json
@@ -22,6 +22,7 @@ class InstaFuck(InstagramAPI):
         self.users = []
         self.login()
         self.db_session = Session()
+        self.today = datetime.date.today()
 
         publications = self.get_publications()
 
@@ -97,31 +98,29 @@ class InstaFuck(InstagramAPI):
         with open('%s.html' % self.tag, 'w+') as f:
             f.write(result)
 
-    def write_to_db(self, user, rewritable_timedelta=timedelta(days=100), *args, **kwargs):
-        pass
+    def write_to_db(self, user, tag, publication, actual_days_range=100):
+        db_user, db_user_created = get_or_create(self.db_session, User, instagram_pk=user['pk'])
+        if not db_user_created \
+                or self.today - user.last_modified.date > datetime.timedelta(days=actual_days_range):
+            db_user.username = user['username']
+            db_user.full_name = user['full_name']
+            db_user.followers = user['followers_count']
 
-    def write_to_db(self, user, tag, publication, rewritable_timedelta=timedelta(days=100)):
-        pass
 
-    def write_to_db(self, user, tag, publication, rewritable_timedelta=timedelta(days=100)):
-        pass
+        tag, _ = get_or_create(self.db_session, Tag, name=tag)
+        self.db_session.add(db_user)
 
-            user, user_created = get_or_create(self.db_session, User, instagram_pk=user['pk'])
-            if not user_created or rewritable_timedelta:
-                user.update({
-                    'username': user['username'],
-                    'full_name': user['full_name'],
-                    'followers': user['followers'],
-                })
+        db_publication, db_publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
+        if not db_publication_created:
+            db_publication.user = db_user
+            db_publication.tag = tag
 
-            tag, _ = get_or_create(self.db_session, Tag, name=tag)
-
-            publication, publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
-            if not created:
-
+        if self.today - db_publication.last_modified.date > datetime.timedelta(days=actual_days_range):
+            db_publication.like_count = publication['like_count']
+            db_publication.link_code = publication['code']
+            db_publication.device_timestamp = publication['device_timestamp']
 
         self.db_session.commit()
-
 
     def __exit__(self):
         self.db_session.close()

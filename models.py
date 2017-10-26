@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 from utils import utc_now
 
 engine = create_engine("sqlite:///instafuck.db", echo=True)
+# engine = create_engine('sqlite:///:memory:', echo=True)
 Base = declarative_base()
 
 Session = sessionmaker(bind=engine)
@@ -46,6 +47,7 @@ class Publication(Base):
     instagram_pk = Column(Integer, unique=True, nullable=False)
     user = Column(Integer, ForeignKey('users.id'))
     tag = relationship("Tag", secondary=association_table, backref="publications")
+    like_count = Column(Integer)
 
 
 # В случае отсутствия важной таблицы, считаем что файл с БД отсутствует
