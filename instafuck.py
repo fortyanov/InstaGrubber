@@ -9,7 +9,8 @@ import json
 # imageio.plugins.ffmpeg.download()
 
 from InstagramAPI import InstagramAPI
-from utils import get_browser_followers, get_or_create
+from utils import get_browser_followers
+from db_utils import get_or_create, write_to_html
 from consts import INSTAGRAM_ACCOUNTS, TAGS
 from models import Session, User, Tag, Publication
 
@@ -107,11 +108,11 @@ class InstaFuck(InstagramAPI):
             db_user.username = user['username']
             db_user.full_name = user['full_name']
             db_user.followers = user['followers_count']
-        self.db_session.commit()
+        # self.db_session.commit()
 
         db_publication, db_publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
         if db_publication_created:
-            db_publication.user = db_user.id
+            db_publication.user_id = db_user.id
 
         if db_publication.last_modified==None \
                 or (self.today - db_publication.last_modified.date() > datetime.timedelta(days=actual_days_range)):
@@ -120,7 +121,7 @@ class InstaFuck(InstagramAPI):
             db_publication.device_timestamp = datetime.datetime.fromtimestamp(
                 int(str(publication['device_timestamp'])[:10])
             )
-        self.db_session.commit()
+        # self.db_session.commit()
 
         db_tag, _ = get_or_create(self.db_session, Tag, name=tag)
         db_tag.publications.append(db_publication)
@@ -138,3 +139,6 @@ if __name__ == '__main__':
         print('account: %s %s' % account)
 
         InstaFuck(account[0], account[1], tag)
+
+    write_to_html(TAGS)
+

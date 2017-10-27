@@ -26,6 +26,7 @@ class User(Base):
     username = Column(String(255))
     full_name = Column(String(255))
     followers = Column(Integer)
+    publications = relationship("Publication", back_populates="user")
     last_modified = Column(DateTime, onupdate=utc_now())
 
     def __repr__(self):
@@ -37,7 +38,7 @@ class Tag(Base):
 
     id = Column(Integer, autoincrement=True, primary_key=True)
     name = Column(String(255))
-    publications = relationship('Publication', secondary=association_table, backref='tags')
+    publications = relationship('Publication', secondary=association_table, back_populates='tags')
 
     def __repr__(self):
         return '%s: %s' % (self.id, self.name)
@@ -48,7 +49,9 @@ class Publication(Base):
 
     id = Column(Integer, autoincrement=True, primary_key=True)
     instagram_pk = Column(Integer, unique=True, nullable=False)
-    user = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates="publications")
+    tags = relationship('Tag', secondary=association_table, back_populates='publications')
     like_count = Column(Integer)
     device_timestamp = Column(DateTime)
     last_modified = Column(DateTime, onupdate=utc_now())
@@ -62,3 +65,11 @@ class Publication(Base):
 # и потому создаем базу из моделей
 if not engine.dialect.has_table(engine, 'users'):
     Base.metadata.create_all(engine)
+
+
+# session.query(Tag).first().publications  <-- вернет все публикации связанные с тегом
+# session.query(Publication).first().tags  <-- вернет все теги связанные с публикацией
+# session.query(User).first().publications  <-- вернет все публикации связанные с пользователем
+# session.query(Publication).first().user  <-- вернет пользователя опубликовавшего публикцию
+# session.query(Publication).first().user_id  <-- вернет id пользователя опубликовавшего публикцию
+# session.query(Publication).first().user_id  <-- вернет id пользователя опубликовавшего публикцию
