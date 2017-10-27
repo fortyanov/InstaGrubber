@@ -40,21 +40,23 @@ class InstaFuck(InstagramAPI):
         # self.write_result_html()
 
     def login(self, force=False, proxies=None):
-        if (not self.isLoggedIn or force):
+        if not self.isLoggedIn or force:
             self.s = requests.Session()
             if proxies:
                 self.s.proxies = proxies
 
-            if (self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True)):
-                data = {'phone_id'   : self.generateUUID(True),
-                        '_csrftoken' : self.LastResponse.cookies['csrftoken'],
-                        'username'   : self.username,
-                        'guid'       : self.uuid,
-                        'device_id'  : self.device_id,
-                        'password'   : self.password,
-                        'login_attempt_count' : '0'}
+            if self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True):
+                data = {
+                    'phone_id': self.generateUUID(True),
+                    '_csrftoken': self.LastResponse.cookies['csrftoken'],
+                    'username': self.username,
+                    'guid': self.uuid,
+                    'device_id': self.device_id,
+                    'password': self.password,
+                    'login_attempt_count': '0'
+                }
 
-                if (self.SendRequest('accounts/login/', self.generateSignature(json.dumps(data)), True)):
+                if self.SendRequest('accounts/login/', self.generateSignature(json.dumps(data)), True):
                     self.isLoggedIn = True
                     self.username_id = self.LastJson["logged_in_user"]["pk"]
                     self.rank_token = "%s_%s" % (self.username_id, self.uuid)
@@ -65,7 +67,7 @@ class InstaFuck(InstagramAPI):
                     self.timelineFeed()
                     self.getv2Inbox()
                     self.getRecentActivity()
-                    print ("Login success!\n")
+                    print("Login success!\n")
                     return True
 
     def get_publications(self):
@@ -100,26 +102,28 @@ class InstaFuck(InstagramAPI):
 
     def write_to_db(self, user, tag, publication, actual_days_range=100):
         db_user, db_user_created = get_or_create(self.db_session, User, instagram_pk=user['pk'])
-        if not db_user_created \
-                or self.today - user.last_modified.date > datetime.timedelta(days=actual_days_range):
+        if db_user_created or db_user.last_modified==None \
+                or (self.today - db_user.last_modified.date() > datetime.timedelta(days=actual_days_range)):
             db_user.username = user['username']
             db_user.full_name = user['full_name']
             db_user.followers = user['followers_count']
-
-
-        tag, _ = get_or_create(self.db_session, Tag, name=tag)
-        self.db_session.add(db_user)
+        self.db_session.commit()
 
         db_publication, db_publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
-        if not db_publication_created:
-            db_publication.user = db_user
-            db_publication.tag = tag
+        if db_publication_created:
+            db_publication.user = db_user.id
 
-        if self.today - db_publication.last_modified.date > datetime.timedelta(days=actual_days_range):
+        if db_publication.last_modified==None \
+                or (self.today - db_publication.last_modified.date() > datetime.timedelta(days=actual_days_range)):
             db_publication.like_count = publication['like_count']
             db_publication.link_code = publication['code']
-            db_publication.device_timestamp = publication['device_timestamp']
+            db_publication.device_timestamp = datetime.datetime.fromtimestamp(
+                int(str(publication['device_timestamp'])[:10])
+            )
+        self.db_session.commit()
 
+        db_tag, _ = get_or_create(self.db_session, Tag, name=tag)
+        db_tag.publications.append(db_publication)
         self.db_session.commit()
 
     def __exit__(self):

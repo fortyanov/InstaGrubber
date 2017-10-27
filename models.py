@@ -12,10 +12,9 @@ Base = declarative_base()
 Session = sessionmaker(bind=engine)
 
 
-association_table = Table(
-    'association', Base.metadata,
-    Column('publications_id', Integer, ForeignKey('publications.id')),
-    Column('tags_id', Integer, ForeignKey('tags.id'))
+association_table = Table('association', Base.metadata,
+    Column('left_id', Integer, ForeignKey('tags.id')),
+    Column('publications_id', Integer, ForeignKey('publications.id'))
 )
 
 
@@ -38,6 +37,10 @@ class Tag(Base):
 
     id = Column(Integer, autoincrement=True, primary_key=True)
     name = Column(String(255))
+    publications = relationship('Publication', secondary=association_table, backref='tags')
+
+    def __repr__(self):
+        return '%s: %s' % (self.id, self.name)
 
 
 class Publication(Base):
@@ -46,8 +49,13 @@ class Publication(Base):
     id = Column(Integer, autoincrement=True, primary_key=True)
     instagram_pk = Column(Integer, unique=True, nullable=False)
     user = Column(Integer, ForeignKey('users.id'))
-    tag = relationship("Tag", secondary=association_table, backref="publications")
     like_count = Column(Integer)
+    device_timestamp = Column(DateTime)
+    last_modified = Column(DateTime, onupdate=utc_now())
+
+    def __repr__(self):
+        return '%s: %s user, %s likes at %s' % (self.instagram_pk, self.user,
+                                                self.like_count, self.device_timestamp)
 
 
 # В случае отсутствия важной таблицы, считаем что файл с БД отсутствует
