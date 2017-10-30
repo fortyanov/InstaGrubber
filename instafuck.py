@@ -32,7 +32,11 @@ class InstaFuck(InstagramAPI):
             user = publication['user']
             if user['pk'] not in [u['pk'] for u in self.users]:
                 # user['followers_count'] = self.get_followers(user['pk'])
-                user['followers_count'] = get_browser_followers(user['username'])
+                try:
+                    user['followers_count'] = get_browser_followers(user['username'])
+                except Exception as e:
+                    print('Непреодолима ошибка: %s\nПользователь: %s\n' % (e, user['username']))
+                    continue
                 print('user: %s    followers_count: %s\n' % (user['username'], user['followers_count']))
                 self.users.append(user)
 
@@ -108,7 +112,7 @@ class InstaFuck(InstagramAPI):
             db_user.username = user['username']
             db_user.full_name = user['full_name']
             db_user.followers = user['followers_count']
-        # self.db_session.commit()
+            print('Создание/Обновление пользователя: %s %s %s\n' % (user['username'], user['full_name'], user['followers_count']))
 
         db_publication, db_publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
         if db_publication_created:
@@ -121,10 +125,13 @@ class InstaFuck(InstagramAPI):
             db_publication.device_timestamp = datetime.datetime.fromtimestamp(
                 int(str(publication['device_timestamp'])[:10])
             )
-        # self.db_session.commit()
+            print('Создание/Обновление публикации: %s %s %s\n' % (publication['code'], user['full_name'], publication['like_count']))
 
-        db_tag, _ = get_or_create(self.db_session, Tag, name=tag)
-        db_tag.publications.append(db_publication)
+        db_tag, db_tag_created = get_or_create(self.db_session, Tag, name=tag)
+        if db_tag_created:
+            db_tag.publications.append(db_publication)
+            print('Создание тега: %s' % tag)
+
         self.db_session.commit()
 
     def __exit__(self):

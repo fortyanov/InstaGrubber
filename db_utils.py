@@ -1,4 +1,4 @@
-from models import Session, User
+from models import Session, User, Publication, Tag
 
 
 def get_or_create(session, model, **kwargs):
@@ -14,17 +14,17 @@ def get_or_create(session, model, **kwargs):
 
 
 def write_to_html(tags):
-    # self.users.sort(key=lambda x: x['followers_count'], reverse=True)
-    # result = ''
-    # for user in self.users:
-    #     result += '<a target=_blank href=https://www.instagram.com/%s>%s</a>&#9;%s&#9;<br>\n' % (
-    #         user['username'], user['username'], user['followers_count'])
-    #
-    # with open('%s.html' % self.tag, 'w+') as f:
-    #     f.write(result)
-
     session = Session()
-    # session.query(Tag).first().publications
-    # session.query(Publication).first().tags
-    # session.query(User).first().publications
-    pass
+
+    # Получаем всех пользователей у которых были посты по интересующим нас тегам и возвращаем
+    # их в порядке убывания подписчиков
+    suitable_users = session.query(User).join(User.publications).join(Publication.tags).filter(
+        Tag.name.in_(tags)).order_by(User.followers.desc()).all()
+
+    result = ''
+    for user in suitable_users:
+        result += '<a target=_blank href=https://www.instagram.com/%s>%s</a>&#9;%s&#9;<br>\n' % (
+            user.username, user.username, user.followers)
+
+    with open('%s.html' % '_'.join(tags), 'w+') as f:
+        f.write(result)

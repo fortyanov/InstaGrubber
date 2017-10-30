@@ -78,7 +78,7 @@ def change_ip(f):
     return f_change_ip
 
 
-@retry(Exception, tries=999999999, delay=300)
+@retry(Exception, tries=3, delay=300)
 def get_browser_followers(username):
     # cookies = browser_cookie3.chrome(cookie_file='~/.config/chromium/Default/Cookies')
     cookies = browser_cookie3.firefox()

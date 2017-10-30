@@ -5,15 +5,16 @@ from sqlalchemy.orm import sessionmaker, relationship
 
 from utils import utc_now
 
-engine = create_engine("sqlite:///instafuck.db", echo=True)
 # engine = create_engine('sqlite:///:memory:', echo=True)
+# engine = create_engine("sqlite:///instafuck.db", echo=True)
+engine = create_engine("sqlite:///instafuck.db", echo=False)
 Base = declarative_base()
 
 Session = sessionmaker(bind=engine)
 
 
-association_table = Table('association', Base.metadata,
-    Column('left_id', Integer, ForeignKey('tags.id')),
+association_tags_publications = Table('association_tags_publications', Base.metadata,
+    Column('tags_id', Integer, ForeignKey('tags.id')),
     Column('publications_id', Integer, ForeignKey('publications.id'))
 )
 
@@ -38,7 +39,8 @@ class Tag(Base):
 
     id = Column(Integer, autoincrement=True, primary_key=True)
     name = Column(String(255))
-    publications = relationship('Publication', secondary=association_table, back_populates='tags')
+    publications = relationship('Publication', secondary=association_tags_publications,
+                                back_populates='tags', lazy="dynamic")
 
     def __repr__(self):
         return '%s: %s' % (self.id, self.name)
@@ -51,7 +53,8 @@ class Publication(Base):
     instagram_pk = Column(Integer, unique=True, nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User", back_populates="publications")
-    tags = relationship('Tag', secondary=association_table, back_populates='publications')
+    tags = relationship('Tag', secondary=association_tags_publications,
+                        back_populates='publications', lazy="dynamic")
     like_count = Column(Integer)
     device_timestamp = Column(DateTime)
     last_modified = Column(DateTime, onupdate=utc_now())
@@ -70,6 +73,7 @@ if not engine.dialect.has_table(engine, 'users'):
 # session.query(Tag).first().publications  <-- вернет все публикации связанные с тегом
 # session.query(Publication).first().tags  <-- вернет все теги связанные с публикацией
 # session.query(User).first().publications  <-- вернет все публикации связанные с пользователем
-# session.query(Publication).first().user  <-- вернет пользователя опубликовавшего публикцию
-# session.query(Publication).first().user_id  <-- вернет id пользователя опубликовавшего публикцию
-# session.query(Publication).first().user_id  <-- вернет id пользователя опубликовавшего публикцию
+# session.query(Publication).first()  <-- вернет пользователя опубликовавшего публикцию
+# session.query(User).first().publications  <--> session.query(Publication).filter_by(user_id=first_user.id).all()
+# session.query(User).join(User.publications).join(Publication.tags).filter_by(name='белогорка2017').all()  <-- вернет всех пользователей постивших с тегом белогорка2017
+# session.query(User).join(User.publications).join(Publication.tags).filter(User.name.in_(['белогорка2смена', 'белогорка2017'])).all() <-- вернет всех пользователей постивших с тегами белогорка2смена и белогорка2017
