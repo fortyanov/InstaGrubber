@@ -20,7 +20,6 @@ class InstaFuck(InstagramAPI):
         super().__init__(username, password)
         self.location_filter = location_filter
         self.tag = tag
-        self.users = []
         self.login()
         self.db_session = Session()
         self.today = datetime.date.today()
@@ -28,21 +27,7 @@ class InstaFuck(InstagramAPI):
         publications = self.get_publications()
 
         for publication in publications:
-            print('publication: %s\n' % publication)
-            user = publication['user']
-            if user['pk'] not in [u['pk'] for u in self.users]:
-                # user['followers_count'] = self.get_followers(user['pk'])
-                try:
-                    user['followers_count'] = get_browser_followers(user['username'])
-                except Exception as e:
-                    print('Непреодолима ошибка: %s\nПользователь: %s\n' % (e, user['username']))
-                    continue
-                print('user: %s    followers_count: %s\n' % (user['username'], user['followers_count']))
-                self.users.append(user)
-
-                self.write_to_db(user=user, tag=self.tag, publication=publication)
-
-        # self.write_result_html()
+            self.write_to_db(user=publication['user'], tag=self.tag, publication=publication)
 
     def login(self, force=False, proxies=None):
         if not self.isLoggedIn or force:
@@ -95,24 +80,14 @@ class InstaFuck(InstagramAPI):
         followers_count = len(self.getTotalFollowers(user_pk))
         return followers_count
 
-    def write_result_html(self):
-        self.users.sort(key=lambda x: x['followers_count'], reverse=True)
-        result = ''
-        for user in self.users:
-            result += '<a target=_blank href=https://www.instagram.com/%s>%s</a>&#9;%s&#9;<br>\n' % (
-                user['username'], user['username'], user['followers_count'])
-
-        with open('%s.html' % self.tag, 'w+') as f:
-            f.write(result)
-
     def write_to_db(self, user, tag, publication, actual_days_range=100):
         db_user, db_user_created = get_or_create(self.db_session, User, instagram_pk=user['pk'])
         if db_user_created or db_user.last_modified==None \
                 or (self.today - db_user.last_modified.date() > datetime.timedelta(days=actual_days_range)):
             db_user.username = user['username']
             db_user.full_name = user['full_name']
-            db_user.followers = user['followers_count']
-            print('Создание/Обновление пользователя: %s %s %s\n' % (user['username'], user['full_name'], user['followers_count']))
+            db_user.followers = get_browser_followers(user['username'])
+            print('Создание/Обновление пользователя: %s %s %s\n' % (db_user.username, db_user.full_name, db_user.followers))
 
         db_publication, db_publication_created = get_or_create(self.db_session, Publication, instagram_pk=publication['pk'])
         if db_publication_created:
@@ -125,7 +100,7 @@ class InstaFuck(InstagramAPI):
             db_publication.device_timestamp = datetime.datetime.fromtimestamp(
                 int(str(publication['device_timestamp'])[:10])
             )
-            print('Создание/Обновление публикации: %s %s %s\n' % (publication['code'], user['full_name'], publication['like_count']))
+            print('Создание/Обновление публикации: %s %s %s\n' % (db_publication.link_code, db_user.full_name, db_publication.like_count))
 
         db_tag, db_tag_created = get_or_create(self.db_session, Tag, name=tag)
         if db_tag_created:

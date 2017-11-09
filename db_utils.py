@@ -18,7 +18,7 @@ def write_to_html(tags):
 
     # Получаем всех пользователей у которых были посты по интересующим нас тегам и возвращаем
     # их в порядке убывания подписчиков
-    suitable_users = session.query(User).join(User.publications).join(Publication.tags).filter(
+    suitable_users = session.query(User).join(User.publications).outerjoin(Publication.tags).filter(
         Tag.name.in_(tags)).order_by(User.followers.desc()).all()
 
     result = ''
@@ -28,3 +28,5 @@ def write_to_html(tags):
 
     with open('%s.html' % '_'.join(tags), 'w+') as f:
         f.write(result)
+
+    session.close()

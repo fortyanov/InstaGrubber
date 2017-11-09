@@ -51,6 +51,7 @@ class Publication(Base):
 
     id = Column(Integer, autoincrement=True, primary_key=True)
     instagram_pk = Column(Integer, unique=True, nullable=False)
+    link_code = Column(String(255), unique=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User", back_populates="publications")
     tags = relationship('Tag', secondary=association_tags_publications,
