@@ -15,7 +15,7 @@ from consts import INSTAGRAM_ACCOUNTS, TAGS
 from models import Session, User, Tag, Publication
 
 
-class InstaFuck(InstagramAPI):
+class InstaGrubber(InstagramAPI):
     def __init__(self, username, password, tag, location_filter=None):
         super().__init__(username, password)
         self.location_filter = location_filter
@@ -120,7 +120,7 @@ if __name__ == '__main__':
         account = random.choice(INSTAGRAM_ACCOUNTS)
         print('account: %s %s' % account)
 
-        InstaFuck(account[0], account[1], tag)
+        InstaGrubber(account[0], account[1], tag)
 
     write_to_html(TAGS)
 
